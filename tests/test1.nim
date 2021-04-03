@@ -8,8 +8,15 @@
 import unittest
 import Nery
 
-test "Simple things first":
-  let a = 3
-  var b = query:
-    select myDbTable()
-  assert(1 == 1)
+suite "selects":
+  test "without columns":
+    let res = query:
+      select myDbTable()
+    assert(res.entity == "myDbTable")
+    assert(res.columns == @["*"])
+
+  test "with columns":
+    let res = query:
+      select myDbTable(col1, col2)
+    assert(res.entity == "myDbTable")
+    assert(res.columns == @["col1", "col2"])

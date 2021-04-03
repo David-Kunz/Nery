@@ -9,12 +9,12 @@ type
     qkSelect
     qkInsert
   Query* = ref object
-    entity: string
-    case kind: QueryKind
+    entity*: string
+    case kind*: QueryKind
     of qkSelect:
-      columns: seq[string]
+      columns*: seq[string]
     of qkInsert:
-      entries: Table[string, string]
+      entries*: Table[string, string]
 
 
 
@@ -22,7 +22,6 @@ proc queryh(n: NimNode): Query =
   expectKind n, nnkCommand 
   expectMinLen n, 2
   let kind = $n[0]
-  echo kind
   case kind:
     of "select":
       let calls = n[1]
@@ -34,7 +33,6 @@ proc queryh(n: NimNode): Query =
           s.columns.add($calls[i])
       else:
         s.columns = @["*"]
-      echo s[]
       return s
 
     of "insert":
@@ -45,9 +43,8 @@ proc queryh(n: NimNode): Query =
 proc queryImpl(body: NimNode): Query =
   expectKind body, nnkStmtList
   expectMinLen body, 1
-  echo body.treeRepr
   let b0 = body[0]
   result = queryh(b0)
 
 macro query*(body: untyped): untyped =
-  let query = queryImpl(body)
+  result = newLit(queryImpl(body))
