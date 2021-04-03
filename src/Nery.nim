@@ -8,15 +8,15 @@ type
   QueryKind* = enum
     qkSelect
     qkInsert
+  Id* = object
+    name*, alias*, prefix*: string
   Query* = ref object
-    entity*: string
+    entity*: Id
     case kind*: QueryKind
     of qkSelect:
-      columns*: seq[string]
+      columns*: seq[Id]
     of qkInsert:
       entries*: Table[string, string]
-
-
 
 proc queryh(n: NimNode): Query = 
   expectKind n, nnkCommand 
@@ -26,13 +26,22 @@ proc queryh(n: NimNode): Query =
     of "select":
       let calls = n[1]
       let tableName = $calls[0]
-      var s = Query(kind: qkSelect, entity: tableName)
+      var s = Query(kind: qkSelect, entity: Id(name: tableName))
       if calls.len > 1:
         for i in 1..<calls.len:
           let c = calls[i]
-          s.columns.add($calls[i])
+          case c.kind:
+            of nnkInfix:
+              let call = calls[i]
+              if $call[0] == "as":
+                echo "found aliased"
+                s.columns.add(Id(name: $call[1], alias: $call[2]))
+            of nnkIdent:
+              s.columns.add(Id(name: $calls[i]))
+            else:
+              error("Invalid column")
       else:
-        s.columns = @["*"]
+        s.columns = @[Id(name: "*")]
       return s
 
     of "insert":
@@ -48,3 +57,5 @@ proc queryImpl(body: NimNode): Query =
 
 macro query*(body: untyped): untyped =
   result = newLit(queryImpl(body))
+  # echo body.treeRepr
+  # result = newLit("3")
