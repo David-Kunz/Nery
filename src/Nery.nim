@@ -24,9 +24,17 @@ proc queryh(n: NimNode): Query =
   let kind = $n[0]
   case kind:
     of "select":
-      let calls = n[1]
+      let second = n[1]
+      var calls: NimNode
+      var alias: string
+      if second.kind == nnkCall: calls = second
+      elif second.kind == nnkInfix and $second[0] == "as":
+        calls = second[1]
+        alias = second[2].strVal
       let tableName = $calls[0]
       var s = Query(kind: qkSelect, entity: Id(name: tableName))
+      if (alias != ""):
+        s.entity.alias = alias
       if calls.len > 1:
         for i in 1..<calls.len:
           let c = calls[i]
@@ -59,3 +67,8 @@ macro query*(body: untyped): untyped =
   result = newLit(queryImpl(body))
   # echo body.treeRepr
   # result = newLit("3")
+
+
+var x = query:
+  select myTable() as foo
+echo x[]

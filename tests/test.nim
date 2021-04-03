@@ -15,7 +15,14 @@ suite "selects":
     assert res.entity.name == "myDbTable"
     assert res.columns == @[Id(name: "col1"),Id(name: "col2"),Id(name: "col3")]
 
-  test "with alias":
+  test "with column alias":
     let res = query:
       select myDbTable(col1 as myCol, col2)
     assert res.columns == @[Id(name: "col1", alias: "myCol"), Id(name: "col2")]
+
+  test "with table alias":
+    let res = query:
+      select myDbTable(col1, col2) as myDb
+    assert res.entity.alias == "myDb"
+    assert res.entity.name == "myDbTable"
+    assert res.columns == @[Id(name: "col1"), Id(name: "col2")]
