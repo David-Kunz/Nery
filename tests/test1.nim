@@ -10,6 +10,6 @@ import Nery
 
 test "Simple things first":
   let a = 3
-  query:
+  var b = query:
     select myDbTable()
   assert(1 == 1)

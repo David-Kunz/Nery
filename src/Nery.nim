@@ -3,12 +3,12 @@ import fusion/matching
 import tables
 
 type
-  KeyVal = object
+  KeyVal* = object
     key, val: string
-  QueryKind = enum
+  QueryKind* = enum
     qkSelect
     qkInsert
-  Query = ref object
+  Query* = ref object
     entity: string
     case kind: QueryKind
     of qkSelect:
