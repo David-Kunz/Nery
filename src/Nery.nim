@@ -18,50 +18,38 @@ type
     of qkInsert:
       entries*: Table[string, string]
 
-proc queryh(n: NimNode): Query = 
-  expectKind n, nnkCommand 
-  expectMinLen n, 2
+proc queryImpl(body: NimNode): Query =
+  expectKind body, nnkStmtList
+  expectMinLen body, 1
+  let n = body[0]
+  # result = queryh(b0)
+  expectKind n, nnkCommand
   let kind = $n[0]
   case kind:
     of "select":
+      var s = Query(kind: qkSelect)
       let second = n[1]
-      var calls: NimNode
-      var alias: string
-      if second.kind == nnkCall: calls = second
-      elif second.kind == nnkInfix and $second[0] == "as":
-        calls = second[1]
-        alias = second[2].strVal
-      let tableName = $calls[0]
-      var s = Query(kind: qkSelect, entity: Id(name: tableName))
-      if (alias != ""):
-        s.entity.alias = alias
-      if calls.len > 1:
-        for i in 1..<calls.len:
-          let c = calls[i]
-          case c.kind:
-            of nnkInfix:
-              let call = calls[i]
-              if $call[0] == "as":
-                echo "found aliased"
-                s.columns.add(Id(name: $call[1], alias: $call[2]))
-            of nnkIdent:
-              s.columns.add(Id(name: $calls[i]))
-            else:
-              error("Invalid column")
-      else:
-        s.columns = @[Id(name: "*")]
-      return s
+      if second.kind == nnkInfix and $second[0] == "as":
+        s.entity = Id(name: $second[1], alias: $second[2])
+      elif second.kind == nnkIdent:
+        s.entity = Id(name: $second)
+      else: error("Invalid entity")
 
+      if n.len == 3 and n[2].kind == nnkStmtList:
+        for stmt in n[2]:
+          case stmt.kind:
+            of nnkInfix:
+              if $stmt[0] == "as":
+                s.columns.add(Id(name: $stmt[1], alias: $stmt[2]))
+              else: error("Invalid column")
+            of nnkIdent:
+              s.columns.add(Id(name: $stmt))
+            else: error("Invalid column")
+      return s
     of "insert":
       echo "found insert"
     else:
       error("Invalid query: " & kind)
-
-proc queryImpl(body: NimNode): Query =
-  expectKind body, nnkStmtList
-  expectMinLen body, 1
-  let b0 = body[0]
-  result = queryh(b0)
 
 macro query*(body: untyped): untyped =
   result = newLit(queryImpl(body))
@@ -69,6 +57,8 @@ macro query*(body: untyped): untyped =
   # result = newLit("3")
 
 
-var x = query:
-  select myTable() as foo
-echo x[]
+# var x = query:
+#   select myTable:
+#     col1 as myCol
+#     col2
+# echo x[]
