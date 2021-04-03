@@ -1,33 +1,31 @@
 import macros
-import fusion/matching
 import tables
 
 type
   KeyVal* = object
     key, val: string
-  QueryKind* = enum
-    qkSelect
-    qkInsert
+  NeryKind* = enum
+    nkSelect
+    nkInsert
   Id* = object
     name*, alias*, prefix*: string
-  Query* = ref object
+  Nery* = ref object
     entity*: Id
-    case kind*: QueryKind
-    of qkSelect:
+    case kind*: NeryKind
+    of nkSelect:
       columns*: seq[Id]
-    of qkInsert:
+    of nkInsert:
       entries*: Table[string, string]
 
-proc queryImpl(body: NimNode): Query =
+proc neryImpl(body: NimNode): Nery =
   expectKind body, nnkStmtList
   expectMinLen body, 1
   let n = body[0]
-  # result = queryh(b0)
   expectKind n, nnkCommand
   let kind = $n[0]
   case kind:
     of "select":
-      var s = Query(kind: qkSelect)
+      var s = Nery(kind: nkSelect)
       let second = n[1]
       if second.kind == nnkInfix and $second[0] == "as":
         s.entity = Id(name: $second[1], alias: $second[2])
@@ -51,14 +49,5 @@ proc queryImpl(body: NimNode): Query =
     else:
       error("Invalid query: " & kind)
 
-macro query*(body: untyped): untyped =
-  result = newLit(queryImpl(body))
-  # echo body.treeRepr
-  # result = newLit("3")
-
-
-# var x = query:
-#   select myTable:
-#     col1 as myCol
-#     col2
-# echo x[]
+macro nery*(body: untyped): untyped =
+  result = newLit(neryImpl(body))
