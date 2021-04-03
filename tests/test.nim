@@ -6,6 +6,7 @@ suite "selects":
     let res = query:
       select myDbTable
     assert res.entity.name == "myDbTable"
+    assert res.columns == @[]
 
   test "with columns":
     let res = query:
