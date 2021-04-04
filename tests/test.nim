@@ -1,7 +1,7 @@
 import unittest
 import nery
 
-suite "selects":
+suite "select":
   test "without columns":
     let res = nery:
       select myDbTable
