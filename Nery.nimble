@@ -2,7 +2,7 @@
 
 version       = "0.1.0"
 author        = "Dr. David Alexander Kunz"
-description   = "Easily create SQLs in Nim"
+description   = "Easily create queries in Nim"
 license       = "MIT"
 srcDir        = "src"
 
