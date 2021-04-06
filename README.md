@@ -1,3 +1,4 @@
 # Nery
 
-This is work in progress, do not use.
+A simple macro to create queries in Nim.
+For examples, please see `tests/test.nim`.
