@@ -46,3 +46,12 @@ suite "select":
     assert res.columns == @[Id(name: "col1"), Id(name: "col2")]
     assert res.orderBy == @[OrderBy(id: Id(name: "col3"), order: asc), OrderBy(
         id: Id(name: "col4"), order: asc), OrderBy(id: Id(name: "col5"), order: desc)]
+
+  test "function columns":
+    let res = nery:
+      select myDbTable:
+        col1
+        col2
+        avg(col3)
+    assert res.id.name == "myDbTable"
+    # assert res.columns == @[Id(name: "col1"), Id(name: "col2"), Id(name: "avg", arguments: @[Id(name: "col3")])]
