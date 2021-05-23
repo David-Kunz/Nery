@@ -115,7 +115,6 @@ suite "select":
     assert res.reference == Reference(kind: rkId, id: "myDbTable")
     assert res.reference.id == "myDbTable"
     assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
-    print res.where
     assert res.where == @[Where(kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col3"), rhs: Reference(kind: rkId, id: "col4")), Where(kind: wkUnary, val: "and"), Where(kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col5"), rhs: Reference(kind: rkId, id: "col6"))]
 
   test "where multiple and brackets":
@@ -128,7 +127,6 @@ suite "select":
           (col5 == col6)
     assert res.reference.id == "myDbTable"
     assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
-    print res.where
     assert res.where == @[Where(kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col3"), rhs: Reference(kind: rkId, id: "col4")), Where(kind: wkUnary, val: "and"), Where(kind: wkUnary, val: "("), Where(kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col5"), rhs: Reference(kind: rkId, id: "col6")), Where(kind: wkUnary, val: ")")]
 
   test "where multiple and brackets":
@@ -183,7 +181,6 @@ suite "select":
           (col5 == col6 or col7 == col8 and col9 == col10)
     assert res.reference.id == "myDbTable"
     assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
-    print res.where
     assert res.where == @[
       Where(
         kind: wkBinary,

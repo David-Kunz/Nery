@@ -128,7 +128,6 @@ proc stmtList2Wheres(stmts: NimNode): seq[Where] =
     if result.len > 0:
       result.add(Where(kind: wkUnary, val: "and"))
     result.add(stmt2Wheres(stmt))
-  echo result
 
 proc neryImpl(body: NimNode): Nery =
   result = Nery()
@@ -167,5 +166,5 @@ proc neryImpl(body: NimNode): Nery =
         error("Invalid query kind")
 
 macro nery*(body: untyped): untyped =
-  echo body.treeRepr
+  # echo body.treeRepr
   result = newLit(neryImpl(body))
