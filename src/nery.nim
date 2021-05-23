@@ -1,7 +1,6 @@
 import macros
 import tables
 import fusion/matching
-import print
 import strutils
 
 type
