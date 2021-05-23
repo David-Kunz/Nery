@@ -1,6 +1,5 @@
 import unittest
 import nery
-import print
 
 suite "select":
   test "without columns":
