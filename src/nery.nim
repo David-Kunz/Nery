@@ -101,12 +101,18 @@ proc infix2Reference(infix: NimNode): Reference =
 
 proc infix2Where(infix: NimNode): seq[Where] =
   if infix.matches(Infix[@cmp is Ident(), @lhs is Infix(), @rhs is Infix()]):
-    result.add infix2Where(lhs)
-    result.add Where(kind: wkUnary, val: cmp.strVal)
-    result.add infix2Where(rhs)
+    if cmp.strVal == "and" or cmp.strVal == "or":
+      result.add infix2Where(lhs)
+      result.add Where(kind: wkUnary, val: cmp.strVal)
+      result.add infix2Where(rhs)
   elif infix.matches(Infix[@op is Ident(), @lhs is Ident(), @rhs is Ident()]):
     result.add Where(kind: wkBinary, op: op.strVal(), lhs: Reference(kind: rkId, id: lhs.strVal), rhs: Reference(kind: rkId, id: rhs.strVal))
-
+  elif infix.matches(Infix[@op is Ident(), @lhs is Call(), @rhs is Ident()]):
+    result.add Where(kind: wkBinary, op: op.strVal(), lhs: call2Reference(lhs), rhs: Reference(kind: rkId, id: rhs.strVal))
+  elif infix.matches(Infix[@op is Ident(), @lhs is Call(), @rhs is Call()]):
+    result.add Where(kind: wkBinary, op: op.strVal(), lhs: call2Reference(lhs), rhs: call2Reference(rhs))
+  elif infix.matches(Infix[@op is Ident(), @lhs is Ident(), @rhs is Call()]):
+    result.add Where(kind: wkBinary, op: op.strVal(), lhs: Reference(kind: rkId, id: lhs.strVal), rhs: call2Reference(rhs))
 
 proc stmt2Wheres(stmt: NimNode): seq[Where] = 
   if stmt.kind == nnkInfix:

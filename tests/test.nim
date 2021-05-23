@@ -215,3 +215,63 @@ suite "select":
       ),
       Where(kind: wkUnary, val: ")")
     ]
+
+  test "where multiple and/or brackets and functions":
+    let res = nery:
+      select myDbTable:
+        col1
+        col2
+        where:
+          myFun(col3) == col4
+          col5 == myFun2(myFun3(col6, myFun4(col7)))
+          (col8 == myFunc5(col9) or myFunc6(col10) == col11)
+    assert res.reference.id == "myDbTable"
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
+    assert res.where == @[
+      Where(
+        kind: wkBinary,
+        lhs: Reference(alias: "", prefix: "", kind: rkFunction, function: "myFun", arguments: @[Reference(alias: "", prefix: "", kind: rkId, id: "col3")]),
+        rhs: Reference(alias: "", prefix: "", kind: rkId, id: "col4"),
+        op: "=="
+      ),
+      Where(kind: wkUnary, val: "and"),
+      Where(
+        kind: wkBinary,
+        lhs: Reference(alias: "", prefix: "", kind: rkId, id: "col5"),
+        rhs: Reference(
+          alias: "",
+          prefix: "",
+          kind: rkFunction,
+          function: "myFun2",
+          arguments: @[
+            Reference(
+              alias: "",
+              prefix: "",
+              kind: rkFunction,
+              function: "myFun3",
+              arguments: @[
+                Reference(alias: "", prefix: "", kind: rkId, id: "col6"),
+                Reference(alias: "", prefix: "", kind: rkFunction, function: "myFun4", arguments: @[Reference(alias: "", prefix: "", kind: rkId, id: "col7")])
+              ]
+            )
+          ]
+        ),
+        op: "=="
+      ),
+      Where(kind: wkUnary, val: "and"),
+      Where(kind: wkUnary, val: "("),
+      Where(
+        kind: wkBinary,
+        lhs: Reference(alias: "", prefix: "", kind: rkId, id: "col8"),
+        rhs: Reference(alias: "", prefix: "", kind: rkFunction, function: "myFunc5", arguments: @[Reference(alias: "", prefix: "", kind: rkId, id: "col9")]),
+        op: "=="
+      ),
+      Where(kind: wkUnary, val: "or"),
+      Where(
+        kind: wkBinary,
+        lhs: Reference(alias: "", prefix: "", kind: rkFunction, function: "myFunc6", arguments: @[Reference(alias: "", prefix: "", kind: rkId, id: "col10")]),
+        rhs: Reference(alias: "", prefix: "", kind: rkId, id: "col11"),
+        op: "=="
+      ),
+      Where(kind: wkUnary, val: ")")
+    ]
