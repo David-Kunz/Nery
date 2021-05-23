@@ -2,6 +2,7 @@ import macros
 import tables
 import fusion/matching
 import print
+import strutils
 
 type
   KeyVal* = object
@@ -99,24 +100,45 @@ proc infix2Reference(infix: NimNode): Reference =
     result.alias = alias.strVal
 
 
-proc infix2Where(infix: NimNode): seq[Where] =
-  if infix.matches(Infix[@cmp is Ident(), @lhs is Infix(), @rhs is Infix()]):
-    if cmp.strVal == "and" or cmp.strVal == "or":
-      result.add infix2Where(lhs)
-      result.add Where(kind: wkUnary, val: cmp.strVal)
-      result.add infix2Where(rhs)
-  elif infix.matches(Infix[@op is Ident(), @lhs is Ident(), @rhs is Ident()]):
-    result.add Where(kind: wkBinary, op: op.strVal(), lhs: Reference(kind: rkId, id: lhs.strVal), rhs: Reference(kind: rkId, id: rhs.strVal))
-  elif infix.matches(Infix[@op is Ident(), @lhs is Call(), @rhs is Ident()]):
-    result.add Where(kind: wkBinary, op: op.strVal(), lhs: call2Reference(lhs), rhs: Reference(kind: rkId, id: rhs.strVal))
-  elif infix.matches(Infix[@op is Ident(), @lhs is Call(), @rhs is Call()]):
-    result.add Where(kind: wkBinary, op: op.strVal(), lhs: call2Reference(lhs), rhs: call2Reference(rhs))
-  elif infix.matches(Infix[@op is Ident(), @lhs is Ident(), @rhs is Call()]):
-    result.add Where(kind: wkBinary, op: op.strVal(), lhs: Reference(kind: rkId, id: lhs.strVal), rhs: call2Reference(rhs))
+# proc infix2Where(infix: NimNode): seq[Where] =
+#   if infix.matches(Infix[@cmp is Ident(), @lhs is Infix(), @rhs is Infix()]):
+#     if cmp.strVal == "and" or cmp.strVal == "or":
+#       result.add infix2Where(lhs)
+#       result.add Where(kind: wkUnary, val: cmp.strVal)
+#       result.add infix2Where(rhs)
+#   elif infix.matches(Infix[@op is Ident(), @lhs is Ident(), @rhs is Ident()]):
+#     result.add Where(kind: wkBinary, op: op.strVal(), lhs: Reference(kind: rkId, id: lhs.strVal), rhs: Reference(kind: rkId, id: rhs.strVal))
+#   elif infix.matches(Infix[@op is Ident(), @lhs is Call(), @rhs is Ident()]):
+#     result.add Where(kind: wkBinary, op: op.strVal(), lhs: call2Reference(lhs), rhs: Reference(kind: rkId, id: rhs.strVal))
+#   elif infix.matches(Infix[@op is Ident(), @lhs is Call(), @rhs is Call()]):
+#     result.add Where(kind: wkBinary, op: op.strVal(), lhs: call2Reference(lhs), rhs: call2Reference(rhs))
+#   elif infix.matches(Infix[@op is Ident(), @lhs is Ident(), @rhs is Call()]):
+#     result.add Where(kind: wkBinary, op: op.strVal(), lhs: Reference(kind: rkId, id: lhs.strVal), rhs: call2Reference(rhs))
+#   elif infix.matches(Infix[@op is Ident(), @lhs is Ident(), @rhs is Call()]):
+#     result.add Where(kind: wkBinary, op: op.strVal(), lhs: Reference(kind: rkId, id: lhs.strVal), rhs: call2Reference(rhs))
+
+proc side2Reference(side: NimNode): Reference =
+  case side.kind:
+  of nnkCall:
+    result = call2Reference(side)
+  of nnkIdent:
+    result = Reference(kind: rkId, id: side.strVal)
+  else: discard
 
 proc stmt2Wheres(stmt: NimNode): seq[Where] = 
   if stmt.kind == nnkInfix:
-    result.add(infix2Where(stmt))
+    let op = stmt[0]
+    let lhs = stmt[1]
+    let rhs = stmt[2]
+    if op.strVal == "and" or op.strVal == "or":
+      result.add(stmt2Wheres(lhs))
+      result.add(Where(kind: wkUnary, val: op.strVal))
+      result.add(stmt2Wheres(rhs))
+    else:
+      result.add(Where(kind: wkBinary, op: op.strVal, lhs: side2Reference(lhs), rhs: side2Reference(rhs)))
+
+
+    # result.add(infix2Where(stmt))
   if stmt.kind == nnkPar:
     result.add(Where(kind: wkUnary, val: "("))
     result.add(stmt2Wheres(stmt[0]))
@@ -128,6 +150,65 @@ proc stmtList2Wheres(stmts: NimNode): seq[Where] =
     if result.len > 0:
       result.add(Where(kind: wkUnary, val: "and"))
     result.add(stmt2Wheres(stmt))
+
+proc reference2Sql(reference: Reference): string =
+  # TODO: Support quoting/uppecase styles
+  if reference.prefix != "":
+    result &= reference.prefix
+  case  reference.kind:
+  of rkId:
+    result &= reference.id
+  of rkFunction:
+    result &= reference.function & "("
+    for idx, arg in reference.arguments:
+      result &= reference2Sql(arg)
+      if idx < reference.arguments.len - 1: result &= ","
+    result &= ")"
+  if reference.alias != "":
+    result &= " AS " & reference.alias
+
+proc orderBy2Sql(orderBy: OrderBy): string =
+  result &= reference2Sql(orderBy.reference)
+  case orderBy.order:
+    of asc: result &= ""
+    of desc: result &= " DESC"
+
+proc op2Sql(op: string): string =
+  case op:
+  of "==": result = "="
+  else: result = op
+
+proc where2Sql(where: Where): string =
+  case where.kind:
+  of wkUnary:
+    result = where.val
+  of wkBinary:
+    result = reference2Sql(where.lhs) & " " & op2Sql(where.op) & " " & reference2Sql(where.rhs)
+
+proc separated[T](sequence: seq[T], processor: proc (x: T): string, initial = "", separator = ",", final = "", spaces = 2, including = false): string =
+  if including or sequence.len > 0:
+    result &= initial
+  if sequence.len > 0:
+    var currSpaces = spaces
+    for idx, item in sequence:
+      let value = processor(item)
+      if value == ")": dec currSpaces
+      result &= repeat(" ", currSpaces) & value
+      if value == "(": inc currSpaces
+      if idx < sequence.len - 1: result &= separator
+      result &= final
+
+proc toSql*(nery: Nery): string =
+  case nery.kind:
+    of nkSelect:
+      result &= separated(nery.columns, reference2Sql, initial = "SELECT\n", including = true, final = "\n")
+      result &= "FROM\n" & "  " & reference2sql(nery.reference)
+      result &= separated(nery.orderBy, orderBy2Sql, initial = "\nORDER BY\n", separator = ",\n")
+      result &= separated(nery.where, where2Sql, initial = "\nWHERE\n", separator = "\n")
+    of nkInsert:
+      result &= "NOT IMPLEMENTED"
+  result &= ";"
+  result
 
 proc neryImpl(body: NimNode): Nery =
   result = Nery()
