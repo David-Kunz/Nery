@@ -5,7 +5,6 @@ suite "select":
   test "without columns":
     let res = nery:
       select myDbTable
-    echo res.toSql
     assert res.toSql == """
 SELECT *
 FROM
