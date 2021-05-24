@@ -52,15 +52,17 @@ type
 proc `==`*(ref1, ref2: Reference): bool =
   if ref1.kind != ref2.kind: return false
   if ref1.alias != ref2.alias or ref1.prefix != ref2.prefix: return false
-  if ref1.kind == rkId:
-    return ref1.id == ref2.id
-  if ref1.kind == rkFunction:
-    return ref1.function == ref2.function and ref1.arguments == ref2.arguments
+  case ref1.kind:
+  of rkId:
+    result = ref1.id == ref2.id
+  of rkFunction:
+    result = ref1.function == ref2.function and ref1.arguments == ref2.arguments
 
 proc `==`*(where1, where2: Where): bool =
   if where1.kind != where2.kind: return false
-  if where1.kind == wkUnary: return where1.val == where2.val
-  if where1.kind == wkBinary: return where1.lhs == where2.lhs and where1.rhs == where2.rhs
+  case where1.kind:
+  of wkUnary: result = where1.val == where2.val
+  of wkBinary: result = where1.lhs == where2.lhs and where1.rhs == where2.rhs
 
 proc ident2Reference(ident: NimNode): Reference =
   Reference(kind: rkId, id: ident.strVal)
@@ -76,14 +78,14 @@ proc command2OrderBy(command: NimNode): OrderBy =
       else:
         error("Invalid order " & order.strVal)
         return
-    result = OrderBy(reference: Reference(kind: rkId, id: $col), order: o)
+    result = OrderBy(reference: ident2Reference(col), order: o)
 
 proc call2Reference(call: NimNode): Reference =
   if call.matches(Call[@fnName is Ident(), all @idents]):
     result = Reference(kind: rkFunction, function: fnName.strVal)
     for ident in idents:
       if ident.matches(@ident is Ident()):
-        result.arguments.add(Reference(kind: rkId, id: ident.strVal))
+        result.arguments.add(ident2Reference(ident))
       if ident.matches(@subCall is Call()):
         result.arguments.add(call2Reference(subCall))
 
@@ -103,10 +105,10 @@ proc side2Reference(side: NimNode): Reference =
   of nnkCall:
     result = call2Reference(side)
   of nnkIdent:
-    result = Reference(kind: rkId, id: side.strVal)
+    result = ident2Reference(side)
   else: discard
 
-proc stmt2Wheres(stmt: NimNode): seq[Where] = 
+proc stmt2Wheres(stmt: NimNode): seq[Where] =
   if stmt.kind == nnkInfix:
     let op = stmt[0]
     let lhs = stmt[1]
@@ -116,7 +118,8 @@ proc stmt2Wheres(stmt: NimNode): seq[Where] =
       result.add(Where(kind: wkUnary, val: op.strVal))
       result.add(stmt2Wheres(rhs))
     else:
-      result.add(Where(kind: wkBinary, op: op.strVal, lhs: side2Reference(lhs), rhs: side2Reference(rhs)))
+      result.add(Where(kind: wkBinary, op: op.strVal, lhs: side2Reference(lhs),
+          rhs: side2Reference(rhs)))
 
 
     # result.add(infix2Where(stmt))
@@ -126,7 +129,7 @@ proc stmt2Wheres(stmt: NimNode): seq[Where] =
     result.add(Where(kind: wkUnary, val: ")"))
 
 
-proc stmtList2Wheres(stmts: NimNode): seq[Where] = 
+proc stmtList2Wheres(stmts: NimNode): seq[Where] =
   for stmt in stmts:
     if result.len > 0:
       result.add(Where(kind: wkUnary, val: "and"))
@@ -136,7 +139,7 @@ proc reference2Sql(reference: Reference): string =
   # TODO: Support quoting/uppecase styles
   if reference.prefix != "":
     result &= reference.prefix
-  case  reference.kind:
+  case reference.kind:
   of rkId:
     result &= reference.id
   of rkFunction:
@@ -164,9 +167,12 @@ proc where2Sql(where: Where): string =
   of wkUnary:
     result = where.val
   of wkBinary:
-    result = reference2Sql(where.lhs) & " " & op2Sql(where.op) & " " & reference2Sql(where.rhs)
+    result = reference2Sql(where.lhs) & " " & op2Sql(where.op) & " " &
+        reference2Sql(where.rhs)
 
-proc separated[T](sequence: seq[T], processor: proc (x: T): string, initial = "", separator = ",", final = "", spaces = 2, including = false): string =
+proc separated[T](sequence: seq[T], processor: proc (x: T): string,
+    initial = "", separator = ",", final = "", spaces = 2,
+    including = false): string =
   if including or sequence.len > 0:
     result &= initial
   if sequence.len > 0:
@@ -182,10 +188,13 @@ proc separated[T](sequence: seq[T], processor: proc (x: T): string, initial = ""
 proc toSql*(nery: Nery): string =
   case nery.kind:
     of nkSelect:
-      result &= separated(nery.columns, reference2Sql, initial = "SELECT\n", including = true, final = "\n")
+      result &= separated(nery.columns, reference2Sql, initial = "SELECT\n",
+          including = true, final = "\n")
       result &= "FROM\n" & "  " & reference2sql(nery.reference)
-      result &= separated(nery.orderBy, orderBy2Sql, initial = "\nORDER BY\n", separator = ",\n")
-      result &= separated(nery.where, where2Sql, initial = "\nWHERE\n", separator = "\n")
+      result &= separated(nery.orderBy, orderBy2Sql, initial = "\nORDER BY\n",
+          separator = ",\n")
+      result &= separated(nery.where, where2Sql, initial = "\nWHERE\n",
+          separator = "\n")
     of nkInsert:
       result &= "NOT IMPLEMENTED"
   result &= ";"
