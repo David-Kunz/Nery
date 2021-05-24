@@ -5,8 +5,9 @@ suite "select":
   test "without columns":
     let res = nery:
       select myDbTable
+    echo res.toSql
     assert res.toSql == """
-SELECT
+SELECT *
 FROM
   myDbTable;"""
     assert res.reference.id == "myDbTable"
@@ -24,7 +25,8 @@ SELECT
 FROM
   myDbTable;"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
 
   test "column alias":
     let res = nery:
@@ -37,7 +39,8 @@ SELECT
   col2
 FROM
   myDbTable;"""
-    assert res.columns == @[Reference(kind: rkId, id: "col1", alias: "myCol"), Reference(kind: rkId, id: "col2")]
+    assert res.columns == @[Reference(kind: rkId, id: "col1", alias: "myCol"),
+        Reference(kind: rkId, id: "col2")]
 
   test "table alias":
     let res = nery:
@@ -52,7 +55,8 @@ FROM
   myDbTable AS myDb;"""
     assert res.reference.alias == "myDb"
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
 
   test "orderby":
     let res = nery:
@@ -75,9 +79,12 @@ ORDER BY
   col5 DESC;"""
     assert res.reference.alias == "myDb"
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
-    assert res.orderBy == @[OrderBy(reference: Reference(kind: rkId, id: "col3"), order: asc), OrderBy(
-        reference: Reference(kind: rkId, id: "col4"), order: asc), OrderBy(reference: Reference(kind: rkId, id: "col5"), order: desc)]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
+    assert res.orderBy == @[OrderBy(reference: Reference(kind: rkId,
+        id: "col3"), order: asc), OrderBy(reference: Reference(kind: rkId,
+            id: "col4"), order: asc), OrderBy(reference: Reference(kind: rkId,
+            id: "col5"), order: desc)]
 
   test "columns with functions":
     let res = nery:
@@ -93,7 +100,9 @@ SELECT
 FROM
   myDbTable;"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2"), Reference(kind: rkFunction, function: "avg", arguments: @[Reference(kind: rkId, id: "col3")])]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2"), Reference(kind: rkFunction, function: "avg",
+        arguments: @[Reference(kind: rkId, id: "col3")])]
 
 
   test "columns with functions and alias":
@@ -110,7 +119,9 @@ SELECT
 FROM
   myDbTable;"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2"), Reference(kind: rkFunction, function: "avg", alias: "myAvg", arguments: @[Reference(kind: rkId, id: "col3")])]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2"), Reference(kind: rkFunction, function: "avg",
+        alias: "myAvg", arguments: @[Reference(kind: rkId, id: "col3")])]
 
   test "columns with functions with multiple arguments":
     let res = nery:
@@ -126,7 +137,10 @@ SELECT
 FROM
   myDbTable;"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2"), Reference(kind: rkFunction, function: "coalesce", arguments: @[Reference(kind: rkId, id: "col3"), Reference(kind: rkId, id: "col4")])]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2"), Reference(kind: rkFunction,
+        function: "coalesce", arguments: @[Reference(kind: rkId, id: "col3"),
+        Reference(kind: rkId, id: "col4")])]
 
   test "columns with nested functions":
     let res = nery:
@@ -142,7 +156,11 @@ SELECT
 FROM
   myDbTable;"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2"), Reference(kind: rkFunction, function: "coalesce", arguments: @[Reference(kind: rkId, id: "col3"), Reference(kind: rkFunction, function: "avg", arguments: @[Reference(kind: rkId, id: "col4")])])]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2"), Reference(kind: rkFunction,
+        function: "coalesce", arguments: @[Reference(kind: rkId, id: "col3"),
+        Reference(kind: rkFunction, function: "avg", arguments: @[Reference(
+        kind: rkId, id: "col4")])])]
 
   test "columns with nested functions and alias":
     let res = nery:
@@ -158,8 +176,12 @@ SELECT
 FROM
   myDbTable;"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2"), Reference(kind: rkFunction, function: "coalesce", alias: "myCoalesce", arguments: @[Reference(kind: rkId, id: "col3"), Reference(kind: rkFunction, function: "avg", arguments: @[Reference(kind: rkId, id: "col4")])])]
- 
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2"), Reference(kind: rkFunction,
+        function: "coalesce", alias: "myCoalesce", arguments: @[Reference(
+        kind: rkId, id: "col3"), Reference(kind: rkFunction, function: "avg",
+        arguments: @[Reference(kind: rkId, id: "col4")])])]
+
   test "where":
     let res = nery:
       select myDbTable:
@@ -176,8 +198,10 @@ FROM
 WHERE
   col3 = col4;"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
-    assert res.where == @[Where(kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col3"), rhs: Reference(kind: rkId, id: "col4"))]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
+    assert res.where == @[Where(kind: wkBinary, op: "==", lhs: Reference(
+        kind: rkId, id: "col3"), rhs: Reference(kind: rkId, id: "col4"))]
 
   test "where multiple":
     let res = nery:
@@ -199,8 +223,12 @@ WHERE
   col5 = col6;"""
     assert res.reference == Reference(kind: rkId, id: "myDbTable")
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
-    assert res.where == @[Where(kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col3"), rhs: Reference(kind: rkId, id: "col4")), Where(kind: wkUnary, val: "and"), Where(kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col5"), rhs: Reference(kind: rkId, id: "col6"))]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
+    assert res.where == @[Where(kind: wkBinary, op: "==", lhs: Reference(
+        kind: rkId, id: "col3"), rhs: Reference(kind: rkId, id: "col4")), Where(
+        kind: wkUnary, val: "and"), Where(kind: wkBinary, op: "==",
+        lhs: Reference(kind: rkId, id: "col5"), rhs: Reference(kind: rkId, id: "col6"))]
 
   test "where multiple and brackets":
     let res = nery:
@@ -223,8 +251,13 @@ WHERE
    col5 = col6
   );"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
-    assert res.where == @[Where(kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col3"), rhs: Reference(kind: rkId, id: "col4")), Where(kind: wkUnary, val: "and"), Where(kind: wkUnary, val: "("), Where(kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col5"), rhs: Reference(kind: rkId, id: "col6")), Where(kind: wkUnary, val: ")")]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
+    assert res.where == @[Where(kind: wkBinary, op: "==", lhs: Reference(
+        kind: rkId, id: "col3"), rhs: Reference(kind: rkId, id: "col4")), Where(
+        kind: wkUnary, val: "and"), Where(kind: wkUnary, val: "("), Where(
+        kind: wkBinary, op: "==", lhs: Reference(kind: rkId, id: "col5"),
+        rhs: Reference(kind: rkId, id: "col6")), Where(kind: wkUnary, val: ")")]
 
   test "where multiple and brackets":
     let res = nery:
@@ -251,7 +284,8 @@ WHERE
    col9 = col10
   );"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
     assert res.where == @[
       Where(
         kind: wkBinary,
@@ -309,7 +343,8 @@ WHERE
    col9 = col10
   );"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
     assert res.where == @[
       Where(
         kind: wkBinary,
@@ -368,11 +403,14 @@ WHERE
    myFunc6(col10) = col11
   );"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
     assert res.where == @[
       Where(
         kind: wkBinary,
-        lhs: Reference(alias: "", prefix: "", kind: rkFunction, function: "myFun", arguments: @[Reference(alias: "", prefix: "", kind: rkId, id: "col3")]),
+        lhs: Reference(alias: "", prefix: "", kind: rkFunction,
+            function: "myFun", arguments: @[Reference(alias: "", prefix: "",
+            kind: rkId, id: "col3")]),
         rhs: Reference(alias: "", prefix: "", kind: rkId, id: "col4"),
         op: "=="
       ),
@@ -393,11 +431,13 @@ WHERE
               function: "myFun3",
               arguments: @[
                 Reference(alias: "", prefix: "", kind: rkId, id: "col6"),
-                Reference(alias: "", prefix: "", kind: rkFunction, function: "myFun4", arguments: @[Reference(alias: "", prefix: "", kind: rkId, id: "col7")])
-              ]
-            )
-          ]
-        ),
+                Reference(alias: "", prefix: "", kind: rkFunction,
+                    function: "myFun4", arguments: @[Reference(alias: "",
+                    prefix: "", kind: rkId, id: "col7")])
+        ]
+      )
+        ]
+      ),
         op: "=="
       ),
       Where(kind: wkUnary, val: "and"),
@@ -405,13 +445,17 @@ WHERE
       Where(
         kind: wkBinary,
         lhs: Reference(alias: "", prefix: "", kind: rkId, id: "col8"),
-        rhs: Reference(alias: "", prefix: "", kind: rkFunction, function: "myFunc5", arguments: @[Reference(alias: "", prefix: "", kind: rkId, id: "col9")]),
+        rhs: Reference(alias: "", prefix: "", kind: rkFunction,
+            function: "myFunc5", arguments: @[Reference(alias: "", prefix: "",
+            kind: rkId, id: "col9")]),
         op: "=="
       ),
       Where(kind: wkUnary, val: "or"),
       Where(
         kind: wkBinary,
-        lhs: Reference(alias: "", prefix: "", kind: rkFunction, function: "myFunc6", arguments: @[Reference(alias: "", prefix: "", kind: rkId, id: "col10")]),
+        lhs: Reference(alias: "", prefix: "", kind: rkFunction,
+            function: "myFunc6", arguments: @[Reference(alias: "", prefix: "",
+            kind: rkId, id: "col10")]),
         rhs: Reference(alias: "", prefix: "", kind: rkId, id: "col11"),
         op: "=="
       ),
@@ -448,7 +492,8 @@ WHERE
    )
   );"""
     assert res.reference.id == "myDbTable"
-    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
     assert res.where == @[
       Where(
         kind: wkBinary,
@@ -489,3 +534,38 @@ WHERE
       Where(kind: wkUnary, val: ")"),
       Where(kind: wkUnary, val: ")")
     ]
+
+  test "having":
+    let res = nery:
+      select myDbTable:
+        col1
+        col2
+        where:
+          col3 == col4
+        groupBy:
+          col5
+          col6
+        having:
+          col7 == col8
+    assert res.toSql == """
+SELECT
+  col1,
+  col2
+FROM
+  myDbTable
+WHERE
+  col3 = col4
+GROUP BY
+  col5,
+  col6
+HAVING
+  col7 = col8;"""
+    assert res.reference.id == "myDbTable"
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
+        kind: rkId, id: "col2")]
+    assert res.where == @[Where(kind: wkBinary, op: "==", lhs: Reference(
+        kind: rkId, id: "col3"), rhs: Reference(kind: rkId, id: "col4"))]
+    assert res.groupBy == @[Reference(kind: rkId, id: "col5"), Reference(
+        kind: rkId, id: "col6")]
+    assert res.having == @[Where(kind: wkBinary, op: "==", lhs: Reference(
+        kind: rkId, id: "col7"), rhs: Reference(kind: rkId, id: "col8"))]

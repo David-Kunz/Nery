@@ -46,6 +46,8 @@ type
       columns*: seq[Reference]
       orderBy*: seq[OrderBy]
       where*: seq[Where]
+      groupBy*: seq[Reference]
+      having*: seq[Where]
     of nkInsert:
       entries*: Table[string, string]
 
@@ -188,12 +190,19 @@ proc separated[T](sequence: seq[T], processor: proc (x: T): string,
 proc toSql*(nery: Nery): string =
   case nery.kind:
     of nkSelect:
-      result &= separated(nery.columns, reference2Sql, initial = "SELECT\n",
-          including = true, final = "\n")
+      if nery.columns.len > 0:
+        result &= separated(nery.columns, reference2Sql, initial = "SELECT\n",
+            including = true, final = "\n")
+      else:
+        result &= "SELECT *\n"
       result &= "FROM\n" & "  " & reference2sql(nery.reference)
       result &= separated(nery.orderBy, orderBy2Sql, initial = "\nORDER BY\n",
           separator = ",\n")
       result &= separated(nery.where, where2Sql, initial = "\nWHERE\n",
+          separator = "\n")
+      result &= separated(nery.groupBy, reference2Sql, initial = "\nGROUP BY\n",
+          separator = ",\n")
+      result &= separated(nery.having, where2Sql, initial = "\nHAVING\n",
           separator = "\n")
     of nkInsert:
       result &= "NOT IMPLEMENTED"
@@ -227,6 +236,15 @@ proc neryImpl(body: NimNode): Nery =
             elif stmt[0].strVal == "where":
               doAssert stmt.len > 1
               result.where.add(stmtList2Wheres(stmt[1]))
+            elif stmt[0].strVal == "having":
+              doAssert stmt.len > 1
+              result.having.add(stmtList2Wheres(stmt[1]))
+            elif stmt[0].strVal == "groupBy":
+              for substmt in stmt[1]:
+                if substmt.kind == nnkIdent:
+                  result.groupBy.add(ident2Reference(substmt))
+                if substmt.kind == nnkInfix:
+                  result.groupBy.add(infix2Reference(substmt))
             else:
               result.columns.add(call2Reference(stmt))
 
