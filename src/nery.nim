@@ -48,6 +48,7 @@ type
       where*: seq[Where]
       groupBy*: seq[Reference]
       having*: seq[Where]
+      dist*: bool
     of nkInsert:
       entries*: Table[string, string]
 
@@ -190,11 +191,12 @@ proc separated[T](sequence: seq[T], processor: proc (x: T): string,
 proc toSql*(nery: Nery): string =
   case nery.kind:
     of nkSelect:
+      let selectString = if nery.dist: "SELECT DISTINCT" else: "SELECT"
       if nery.columns.len > 0:
-        result &= separated(nery.columns, reference2Sql, initial = "SELECT\n",
+        result &= separated(nery.columns, reference2Sql, initial = selectString & "\n",
             including = true, final = "\n")
       else:
-        result &= "SELECT *\n"
+        result &= selectString & " *\n"
       result &= "FROM\n" & "  " & reference2sql(nery.reference)
       result &= separated(nery.orderBy, orderBy2Sql, initial = "\nORDER BY\n",
           separator = ",\n")
@@ -220,6 +222,9 @@ proc neryImpl(body: NimNode): Nery =
           result.reference = infix2Reference(table)
         if table.kind == nnkIdent:
           result.reference = ident2Reference(table)
+        if table.kind == nnkCommand:
+          result.reference = ident2Reference(table[1])
+          if table[0].strVal == "dist": result.dist = true
         for stmt in stmts:
           if stmt.kind == nnkIdent:
             result.columns.add(ident2Reference(stmt))

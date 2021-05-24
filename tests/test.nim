@@ -12,6 +12,7 @@ FROM
     assert res.reference.id == "myDbTable"
     assert res.columns == @[]
 
+
   test "columns":
     let res = nery:
       select myDbTable:
@@ -26,6 +27,21 @@ FROM
     assert res.reference.id == "myDbTable"
     assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(
         kind: rkId, id: "col2")]
+
+  test "distinct":
+    let res = nery:
+      select dist myDbTable:
+        col1
+        col2
+    assert res.toSql == """
+SELECT DISTINCT
+  col1,
+  col2
+FROM
+  myDbTable;"""
+    assert res.reference.id == "myDbTable"
+    assert res.columns == @[Reference(kind: rkId, id: "col1"), Reference(kind: rkId, id: "col2")]
+    assert res.dist == true
 
   test "column alias":
     let res = nery:
